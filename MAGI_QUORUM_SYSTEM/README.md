@@ -72,7 +72,3 @@ PORT=3000
 │           └── index.json
 └── README.md
 ```
-
-## License
-
-MIT
