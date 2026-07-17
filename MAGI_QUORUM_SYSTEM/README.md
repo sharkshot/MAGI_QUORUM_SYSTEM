@@ -22,11 +22,10 @@
 
 ```bash
 npm install
-cp .env.example .env   # 填入你的 AI API 信息
 node server.js
 ```
 
-后端运行在 `http://localhost:3000`
+后端运行在 `http://localhost:3000`，**默认 MOCK 模式**，无需 API Key 即可体验完整功能。
 
 ### 2. 网页版
 
@@ -38,18 +37,30 @@ node server.js
 
 修改 `magi-miniprogram/pages/index/index.js` 中的 `API_BASE` 为你的后端地址。
 
-## 配置
+## 启用真实 AI 分析
 
-在 `.env` 中配置：
+复制 `.env.example` 为 `.env`，取消注释并填入你的 API 信息：
+
+```bash
+cp .env.example .env
+```
 
 ```env
 AI_API_BASE=https://api.deepseek.com/v1   # 支持 OpenAI / DeepSeek / 通义千问 / 智谱等
-AI_API_KEY=your-api-key
+AI_API_KEY=sk-your-key-here
 AI_MODEL=deepseek-chat
-PORT=3000
 ```
 
-未配置 API Key 时自动进入 MOCK 模式，可测试完整流程。
+保存后重启 `node server.js` 即可切换到 AI 模式。
+
+**常见 API 配置：**
+
+| 服务 | AI_API_BASE | AI_MODEL |
+|------|-------------|----------|
+| DeepSeek | `https://api.deepseek.com/v1` | `deepseek-chat` |
+| OpenAI | `https://api.openai.com/v1` | `gpt-4o-mini` |
+| 智谱 | `https://open.bigmodel.cn/api/paas/v4` | `glm-4-flash` |
+| Moonshot | `https://api.moonshot.cn/v1` | `moonshot-v1-8k` |
 
 ## 项目结构
 
@@ -72,3 +83,7 @@ PORT=3000
 │           └── index.json
 └── README.md
 ```
+
+## License
+
+MIT

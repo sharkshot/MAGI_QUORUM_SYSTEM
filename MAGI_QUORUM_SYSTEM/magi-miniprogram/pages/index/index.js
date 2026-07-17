@@ -107,8 +107,13 @@ Page({
     try {
       result = await this.fetchAIAnalysis(question);
     } catch (err) {
+      const errMsg = (err.message || '请求失败').includes('timeout')
+        ? '请求超时，后端服务可能未启动'
+        : (err.message || '请求失败');
       this.setData({
-        'logs[0].text': `ERROR: ${err.message || '请求失败'}`,
+        'logs[0].text': `⚠ ${errMsg}`,
+        'logs[1].text': '等待服务恢复...',
+        'logs[2].text': '等待服务恢复...',
         isAnalyzing: false,
         exMode: 'OFF'
       });
@@ -151,6 +156,7 @@ Page({
       wx.request({
         url: `${API_BASE}/api/analyze`,
         method: 'POST',
+        timeout: 30000,
         header: { 'Content-Type': 'application/json' },
         data: { question },
         success: (res) => {

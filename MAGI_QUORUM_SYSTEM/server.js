@@ -126,6 +126,10 @@ app.post('/api/analyze', async (req, res) => {
   }
 
   try {
+    // 10 秒超时，防止 AI API 挂起导致前端 Failed to fetch
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
     const response = await fetch(`${AI_API_BASE.replace(/\/+$/, '')}/chat/completions`, {
       method: 'POST',
       headers: {
@@ -140,8 +144,11 @@ app.post('/api/analyze', async (req, res) => {
         ],
         temperature: 0.7,
         max_tokens: 800
-      })
+      }),
+      signal: controller.signal
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errText = await response.text();
@@ -159,12 +166,14 @@ app.post('/api/analyze', async (req, res) => {
     const raw = parseJsonResponse(content);
     return res.json(normalizeResult(raw));
   } catch (err) {
-    console.error('Server error:', err);
+    console.error('Server error:', err.message);
     // 降级到 MOCK 模式
     console.log('[FALLBACK] 降级到 MOCK 模式');
     const mockResult = normalizeResult(pickMockResult(question.trim()));
     mockResult.mode = 'mock_fallback';
-    mockResult.fallback_reason = '服务器异常，已降级到模拟模式';
+    mockResult.fallback_reason = err.name === 'AbortError'
+      ? 'AI API 响应超时，已降级到模拟模式'
+      : '服务器异常，已降级到模拟模式';
     return res.json(mockResult);
   }
 });

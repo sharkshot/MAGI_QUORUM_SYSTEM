@@ -597,16 +597,28 @@ function showDecision(votes) {
 }
 
 async function fetchAIAnalysis(question) {
-  const res = await fetch('/api/analyze', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ question })
-  });
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error('AI API 请求失败: ' + err);
+  // 30 秒超时，防止后端挂起导致 Failed to fetch
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+  try {
+    const res = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question }),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error('AI API 请求失败: ' + err);
+    }
+    return await res.json();
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (err.name === 'AbortError') throw new Error('请求超时');
+    throw err;
   }
-  return await res.json();
 }
 
 async function runAnalysis() {
@@ -636,7 +648,12 @@ async function runAnalysis() {
   try {
     result = await fetchAIAnalysis(question);
   } catch (err) {
-    document.getElementById('log-melchior').textContent = 'ERROR: ' + err.message;
+    const errMsg = err.message.includes('Failed to fetch')
+      ? '后端服务未响应，请确认 server.js 已启动'
+      : err.message;
+    document.getElementById('log-melchior').innerHTML = `<strong>MELCHIOR-01 / 理性分析</strong><br><span style="color:#e31b23">⚠ ${errMsg}</span>`;
+    document.getElementById('log-balthasar').innerHTML = `<strong>BALTHASAR-02 / 道德评估</strong><br><span style="color:#b87a00">等待服务恢复...</span>`;
+    document.getElementById('log-caspar').innerHTML = `<strong>CASPAR-03 / 直觉判别</strong><br><span style="color:#b87a00">等待服务恢复...</span>`;
     btn.disabled = false; btn.textContent = 'EXECUTE';
     exMode.textContent = 'OFF'; exMode.classList.remove('on');
     isAnalyzing = false;
