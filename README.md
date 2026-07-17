@@ -83,7 +83,3 @@ AI_MODEL=deepseek-chat
 └── README.md
 ```
 
-## License
-
-MIT
-
