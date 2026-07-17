@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>MAGI SYSTEM</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@700;900&family=Share+Tech+Mono&family=Noto+Sans+SC:wght@300;400;700&display=swap');
+
+:root {
+  --bg: #000;
+  --gold: #ffae00;
+  --gold-dim: #b87a00;
+  --gold-bright: #ffd166;
+  --cyan: #4fffd4;
+  --cyan-dark: #2a9dff;
+  --red: #e31b23;
+  --red-dark: #8b0000;
+  --text-on-color: #000;
+  --ring: rgba(255, 174, 0, 0.35);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 100%; min-height: 100vh;
+  background: var(--bg);
+  color: var(--gold);
+  font-family: 'Share Tech Mono', 'Noto Sans SC', monospace;
+  overflow-x: hidden;
+}
+
+.magi-app {
+  position: relative;
+  width: 100%; min-height: 100vh;
+  padding: 20px;
+  display: flex; flex-direction: column;
+}
+
+/* CRT effects */
+.scanlines {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: repeating-linear-gradient(
+    0deg, transparent 0px, transparent 2px, rgba(255, 174, 0, 0.025) 2px, transparent 3px
+  );
+  pointer-events: none; z-index: 100;
+  animation: scanlineMove 0.2s linear infinite;
+}
+
+@keyframes scanlineMove {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 4px; }
+}
+
+.crt-flicker {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.08) 100%);
+  pointer-events: none; z-index: 99;
+  opacity: 0.06;
+  animation: flicker 0.15s infinite;
+}
+
+@keyframes flicker {
+  0%, 100% { opacity: 0.05; }
+  50% { opacity: 0.09; }
+}
+
+/* Top labels */
+.top-bar {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  margin-bottom: 16px;
+  position: relative; z-index: 10;
+}
+
+.top-label {
+  font-family: 'Noto Serif JP', serif;
+  font-size: clamp(32px, 8vw, 68px);
+  font-weight: 900;
+  color: var(--gold);
+  letter-spacing: clamp(4px, 1.5vw, 10px);
+  text-shadow: 0 0 20px rgba(255, 174, 0, 0.4);
+  line-height: 1;
+}
+
+.top-label.deco::before,
+.top-label.deco::after {
+  content: ''; display: block; height: 3px; background: var(--gold);
+  box-shadow: 0 0 8px rgba(255, 174, 0, 0.5);
+  margin: 6px 0;
+}
+
+/* Main grid: desktop side-by-side, mobile stacked */
+.magi-main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 260px 1fr 220px;
+  gap: 24px;
+  align-items: start;
+  position: relative; z-index: 10;
+}
+
+/* Left metadata panel */
+.left-panel {
+  border: 2px solid var(--gold);
+  padding: 22px 18px;
+  background: rgba(0,0,0,0.9);
+  position: relative;
+}
+
+.left-panel::before {
+  content: ''; position: absolute; top: -2px; left: -2px; right: -2px; height: 3px;
+  background: var(--gold); box-shadow: 0 0 10px var(--gold);
+}
+
+.meta-list { margin-bottom: 24px; }
+
+.meta-row {
+  display: flex; justify-content: flex-start; align-items: baseline; gap: 8px;
+  margin-bottom: 8px;
+  font-size: 14px; letter-spacing: 1px;
+}
+
+.meta-label { color: var(--gold-dim); font-size: 12px; min-width: 76px; }
+.meta-value { color: var(--gold); font-weight: 700; }
+#code { font-size: 26px; letter-spacing: 2px; }
+#ex-mode.on { color: var(--cyan); text-shadow: 0 0 8px var(--cyan); }
+#api-status.on { color: var(--cyan); text-shadow: 0 0 8px var(--cyan); }
+
+.input-area { border-top: 1px solid var(--gold-dim); padding-top: 18px; }
+
+.input-label {
+  font-size: 11px; color: var(--gold-dim);
+  letter-spacing: 3px; margin-bottom: 10px;
+}
+
+#question-input {
+  width: 100%; background: #0a0a0a;
+  border: 1px solid var(--gold-dim); color: var(--gold);
+  padding: 10px 12px; font-size: 13px;
+  margin-bottom: 12px; outline: none;
+  font-family: 'Noto Sans SC', 'Share Tech Mono', monospace;
+}
+#question-input:focus { border-color: var(--gold); box-shadow: 0 0 12px rgba(255, 174, 0, 0.25); }
+#question-input::placeholder { color: var(--gold-dim); opacity: 0.6; }
+
+.button-row { display: flex; gap: 8px; }
+#analyze-btn, #reset-btn {
+  flex: 1; background: transparent;
+  border: 1px solid var(--gold); color: var(--gold);
+  padding: 9px 0; font-size: 12px; letter-spacing: 2px;
+  cursor: pointer; transition: all 0.2s;
+  font-family: 'Share Tech Mono', monospace; font-weight: 700;
+}
+#analyze-btn:hover:not(:disabled), #reset-btn:hover {
+  background: var(--gold); color: var(--text-on-color);
+  box-shadow: 0 0 15px rgba(255, 174, 0, 0.4);
+}
+#analyze-btn:disabled {
+  opacity: 0.4; cursor: not-allowed; border-color: var(--gold-dim); color: var(--gold-dim);
+}
+
+/* Center area */
+.center-wrap {
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+  min-height: 420px;
+}
+
+.center-area {
+  position: relative;
+  width: min(420px, 90vw); height: min(420px, 90vw);
+  margin: 0 auto;
+}
+
+.magi-title {
+  position: absolute; left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: clamp(36px, 10vw, 52px); font-weight: 900;
+  color: var(--gold); letter-spacing: 10px;
+  text-shadow: 0 0 30px rgba(255, 174, 0, 0.5);
+  animation: titleFlicker 4s infinite;
+  z-index: 2;
+}
+
+@keyframes titleFlicker {
+  0%, 100% { opacity: 1; }
+  5% { opacity: 0.7; }
+  10% { opacity: 1; }
+  15% { opacity: 0.85; }
+  20% { opacity: 1; }
+  92% { opacity: 1; }
+  94% { opacity: 0.6; }
+  96% { opacity: 1; }
+}
+
+.ring {
+  position: absolute; left: 50%; top: 50%;
+  width: 76%; height: 76%;
+  transform: translate(-50%, -50%);
+  border: 2px solid var(--ring);
+  border-radius: 50%;
+  z-index: 0;
+  box-shadow: 0 0 20px rgba(255, 174, 0, 0.1);
+}
+
+.triangle-lines {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 0;
+}
+.triangle-lines .line {
+  stroke: var(--gold); stroke-width: 1.5; opacity: 0.45;
+  filter: drop-shadow(0 0 3px rgba(255, 174, 0, 0.3));
+}
+
+/* Panels */
+.panel {
+  position: absolute;
+  border: 3px solid var(--gold);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 3;
+  box-shadow: 0 0 20px rgba(255, 174, 0, 0.15);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.panel.balthasar {
+  width: 30%; height: 36%;
+  left: 50%; top: 0;
+  transform: translateX(-50%);
+  background: var(--cyan);
+}
+.panel.melchior {
+  width: 30%; height: 36%;
+  right: 6%; bottom: 6%;
+  background: var(--cyan);
+}
+.panel.caspar {
+  width: 30%; height: 36%;
+  left: 6%; bottom: 6%;
+  background: var(--red);
+}
+
+.panel-inner {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center;
+}
+.panel.melchior .panel-en,
+.panel.caspar .panel-en { font-size: 11px; }
+
+.panel-jp {
+  font-family: 'Noto Serif JP', serif;
+  font-size: clamp(28px, 7vw, 42px); font-weight: 900;
+  color: var(--text-on-color);
+  margin-bottom: 6px;
+  letter-spacing: 2px;
+}
+.panel-en {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px; color: var(--text-on-color);
+  letter-spacing: 1px; font-weight: 700;
+}
+
+.panel.balthasar .panel-en { font-size: 11px; }
+
+.panel.analyzing { animation: panelPulse 0.8s ease-in-out infinite; }
+@keyframes panelPulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(255, 174, 0, 0.15); }
+  50% { box-shadow: 0 0 35px rgba(255, 174, 0, 0.7); }
+}
+.panel.vote-reveal .panel-jp { animation: voteStamp 0.5s ease; }
+@keyframes voteStamp {
+  0% { transform: scale(1.5); opacity: 0; }
+  60% { transform: scale(0.95); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Right decision panel */
+.right-panel {
+  display: flex; flex-direction: column; align-items: center;
+  padding-top: 20px;
+}
+.right-label {
+  font-family: 'Noto Serif JP', serif;
+  font-size: clamp(28px, 6vw, 40px); font-weight: 900;
+  color: var(--gold); margin-bottom: 16px;
+  letter-spacing: 4px;
+  text-shadow: 0 0 15px rgba(255, 174, 0, 0.3);
+}
+
+.decision-box {
+  width: 120px; height: 120px;
+  border: 3px solid var(--gold);
+  display: flex; align-items: center; justify-content: center;
+  background: #111;
+  transition: all 0.5s;
+  box-shadow: 0 0 15px rgba(255, 174, 0, 0.1);
+}
+.decision-box.approve { background: var(--cyan); box-shadow: 0 0 25px rgba(79, 255, 212, 0.4); }
+.decision-box.deny { background: var(--red); box-shadow: 0 0 25px rgba(227, 27, 35, 0.4); }
+.decision-box.abstain { background: var(--gold); box-shadow: 0 0 25px rgba(255, 174, 0, 0.4); }
+
+.decision-jp {
+  font-family: 'Noto Serif JP', serif;
+  font-size: 42px; font-weight: 900;
+  color: var(--text-on-color);
+  letter-spacing: 2px;
+}
+.decision-box.reveal { animation: decisionFlash 0.7s ease; }
+@keyframes decisionFlash {
+  0% { transform: scale(0.7); opacity: 0; }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Bottom analysis log */
+.analysis-log {
+  margin-top: 24px;
+  background: rgba(0,0,0,0.95);
+  border-top: 2px solid var(--gold);
+  padding: 16px 0;
+  z-index: 50;
+}
+.log-header {
+  font-size: 12px; color: var(--gold-dim);
+  letter-spacing: 4px; margin-bottom: 10px;
+  font-family: 'Share Tech Mono', monospace;
+  padding: 0 4px;
+}
+.log-body {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.log-col {
+  border: 1px solid var(--gold-dim);
+  padding: 12px 14px;
+  font-size: 12px;
+  line-height: 1.7;
+  min-height: 120px;
+  max-height: 180px;
+  overflow-y: auto;
+  background: rgba(10, 10, 10, 0.6);
+  font-family: 'Noto Sans SC', monospace;
+}
+.log-col strong {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px; letter-spacing: 1px;
+  display: block; margin-bottom: 8px;
+}
+.log-col.melchior { border-color: var(--cyan); color: var(--cyan); }
+.log-col.balthasar { border-color: var(--cyan); color: var(--cyan); }
+.log-col.caspar { border-color: var(--red); color: var(--red); }
+.log-empty {
+  color: var(--gold-dim); font-size: 11px; text-align: center; padding: 20px;
+}
+.log-warn {
+  grid-column: 1 / -1;
+  color: var(--gold);
+  background: rgba(255, 174, 0, 0.1);
+  border: 1px solid var(--gold-dim);
+  padding: 8px 12px;
+  font-size: 11px;
+  font-family: 'Noto Sans SC', monospace;
+  text-align: center;
+}
+  grid-column: 1 / -1; color: var(--gold-dim); text-align: center;
+  padding-top: 40px; font-size: 12px; letter-spacing: 2px;
+}
+.typing-cursor::after {
+  content: '▊'; color: currentColor;
+  animation: cursorBlink 0.8s steps(2) infinite;
+}
+@keyframes cursorBlink { 50% { opacity: 0; } }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: #000; }
+::-webkit-scrollbar-thumb { background: var(--gold-dim); }
+::-webkit-scrollbar-thumb:hover { background: var(--gold); }
+
+/* Boot Screen */
+#boot-screen {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: var(--bg); z-index: 9999;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  transition: opacity 1s ease-out;
+}
+#boot-screen.hide { opacity: 0; pointer-events: none; }
+.boot-magi {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: clamp(48px, 12vw, 80px); font-weight: 900; color: var(--gold);
+  letter-spacing: 20px;
+  text-shadow: 0 0 50px rgba(255, 174, 0, 0.6);
+  animation: bootGlow 1.5s ease-in-out infinite alternate;
+}
+@keyframes bootGlow {
+  from { text-shadow: 0 0 30px rgba(255, 174, 0, 0.3); }
+  to { text-shadow: 0 0 70px rgba(255, 174, 0, 0.8), 0 0 100px rgba(255, 174, 0, 0.3); }
+}
+.boot-log {
+  margin-top: 40px; font-size: 13px; color: var(--gold);
+  font-family: 'Share Tech Mono', monospace;
+  letter-spacing: 2px; line-height: 2;
+  text-align: center;
+  min-height: 200px;
+}
+.boot-log-line { opacity: 0; animation: bootLine 0.1s forwards; }
+@keyframes bootLine { to { opacity: 1; } }
+
+/* ===== Responsive ===== */
+@media (max-width: 900px) {
+  .magi-main {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+    gap: 16px;
+  }
+  .left-panel { order: 2; }
+  .center-wrap { order: 1; min-height: auto; }
+  .right-panel { order: 3; }
+
+  .center-area { width: min(340px, 85vw); height: min(340px, 85vw); }
+  .panel-jp { font-size: clamp(24px, 8vw, 34px); }
+
+  .right-panel { padding-top: 0; align-items: flex-start; }
+  .right-label { margin-bottom: 10px; }
+  .decision-box { width: 100px; height: 100px; }
+  .decision-jp { font-size: 34px; }
+
+  .log-body { grid-template-columns: 1fr; }
+  .log-col { max-height: 140px; }
+}
+
+@media (max-width: 480px) {
+  .magi-app { padding: 12px; }
+  .top-label { font-size: 36px; letter-spacing: 4px; }
+  .center-area { width: 300px; height: 300px; }
+  .panel-jp { font-size: 26px; }
+  .panel-en { font-size: 9px; }
+  .magi-title { font-size: 38px; letter-spacing: 6px; }
+  .decision-box { width: 90px; height: 90px; }
+  .decision-jp { font-size: 30px; }
+  .log-col { font-size: 11px; }
+}
+
+@media (min-width: 1400px) {
+  .magi-main { grid-template-columns: 300px 1fr 260px; }
+  .center-area { width: 480px; height: 480px; }
+  .magi-title { font-size: 60px; }
+}
+</style>
+</head>
+<body>
+
+<div id="boot-screen">
+  <div class="boot-magi">MAGI</div>
+  <div class="boot-log" id="boot-log"></div>
+</div>
+
+<div class="magi-app">
+  <div class="scanlines"></div>
+  <div class="crt-flicker"></div>
+
+  <div class="top-bar">
+    <div class="top-label deco">提訴</div>
+    <div class="top-label deco">決議</div>
+  </div>
+
+  <div class="magi-main">
+    <div class="left-panel">
+      <div class="meta-list">
+        <div class="meta-row"><span class="meta-label">CODE:</span><span class="meta-value" id="code">265</span></div>
+        <div class="meta-row"><span class="meta-label">FILE:</span><span class="meta-value">MAGI_SYS</span></div>
+        <div class="meta-row"><span class="meta-label">EXTENTION:</span><span class="meta-value" id="extension">4088</span></div>
+        <div class="meta-row"><span class="meta-label">EX_MODE:</span><span class="meta-value" id="ex-mode">OFF</span></div>
+        <div class="meta-row"><span class="meta-label">PRIORITY:</span><span class="meta-value">AAA</span></div>
+        <div class="meta-row"><span class="meta-label">AI API:</span><span class="meta-value" id="api-status">CHECKING...</span></div>
+      </div>
+
+      <div class="input-area">
+        <div class="input-label">CASE DATA INPUT</div>
+        <input type="text" id="question-input" placeholder="输入需要决策的问题" autocomplete="off">
+        <div class="button-row">
+          <button id="analyze-btn" onclick="runAnalysis()">EXECUTE</button>
+          <button id="reset-btn" onclick="resetSystem()">RESET</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="center-wrap">
+      <div class="center-area">
+        <div class="ring"></div>
+        <div class="magi-title">MAGI</div>
+        <svg class="triangle-lines" viewBox="0 0 420 420" xmlns="http://www.w3.org/2000/svg">
+          <line class="line" x1="210" y1="42" x2="360" y2="320"/>
+          <line class="line" x1="360" y1="320" x2="60" y2="320"/>
+          <line class="line" x1="60" y1="320" x2="210" y2="42"/>
+        </svg>
+
+        <div class="panel balthasar" id="panel-balthasar">
+          <div class="panel-inner">
+            <div class="panel-jp" id="vote-jp-balthasar">—</div>
+            <div class="panel-en">BALTHASAR</div>
+          </div>
+        </div>
+
+        <div class="panel melchior" id="panel-melchior">
+          <div class="panel-inner">
+            <div class="panel-jp" id="vote-jp-melchior">—</div>
+            <div class="panel-en">MELCHIOR</div>
+          </div>
+        </div>
+
+        <div class="panel caspar" id="panel-caspar">
+          <div class="panel-inner">
+            <div class="panel-jp" id="vote-jp-caspar">—</div>
+            <div class="panel-en">CASPAR</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="right-panel">
+      <div class="right-label">決議</div>
+      <div class="decision-box" id="decision-box">
+        <div class="decision-jp" id="decision-jp">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="analysis-log">
+    <div class="log-header">[ ANALYSIS LOG ]</div>
+    <div class="log-body" id="log-body">
+      <div class="log-empty">等待决策输入... / WAITING FOR INPUT</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+//  MAGI AI Decision Engine
+// ============================================================
+
+const systemKeys = ['melchior', 'balthasar', 'caspar'];
+const systemNames = {
+  melchior: 'MELCHIOR-01 / 理性分析',
+  balthasar: 'BALTHASAR-02 / 道德评估',
+  caspar: 'CASPAR-03 / 直觉判别'
+};
+const voteJpMap = { approve: '承認', deny: '否定', abstain: '保留' };
+
+let isAnalyzing = false;
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function typewriter(element, text, speed = 12) {
+  const cursor = document.createElement('span');
+  cursor.className = 'typing-cursor';
+  element.appendChild(cursor);
+  for (let i = 0; i < text.length; i++) {
+    cursor.textContent += text[i];
+    await sleep(speed);
+  }
+  cursor.classList.remove('typing-cursor');
+}
+
+function resetPanels() {
+  systemKeys.forEach(sys => {
+    const panel = document.getElementById('panel-' + sys);
+    panel.classList.remove('analyzing', 'vote-reveal');
+    document.getElementById('vote-jp-' + sys).textContent = '—';
+  });
+  const decisionBox = document.getElementById('decision-box');
+  decisionBox.className = 'decision-box';
+  document.getElementById('decision-jp').textContent = '—';
+}
+
+function resetSystem() {
+  resetPanels();
+  document.getElementById('question-input').value = '';
+  document.getElementById('log-body').innerHTML = '<div class="log-empty">等待决策输入... / WAITING FOR INPUT</div>';
+  document.getElementById('code').textContent = '265';
+  document.getElementById('extension').textContent = '4088';
+  const exMode = document.getElementById('ex-mode');
+  exMode.textContent = 'OFF'; exMode.classList.remove('on');
+}
+
+function showDecision(votes) {
+  const counts = { approve: 0, deny: 0, abstain: 0 };
+  Object.values(votes).forEach(v => { if (counts[v] !== undefined) counts[v]++; });
+  let decision = 'abstain', jpText = '保留';
+  if (counts.approve >= 2) { decision = 'approve'; jpText = '承認'; }
+  else if (counts.deny >= 2) { decision = 'deny'; jpText = '否定'; }
+  document.getElementById('decision-box').className = 'decision-box ' + decision + ' reveal';
+  document.getElementById('decision-jp').textContent = jpText;
+}
+
+async function fetchAIAnalysis(question) {
+  const res = await fetch('/api/analyze', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question })
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error('AI API 请求失败: ' + err);
+  }
+  return await res.json();
+}
+
+async function runAnalysis() {
+  const question = document.getElementById('question-input').value.trim();
+  if (!question) return;
+  if (isAnalyzing) return;
+  isAnalyzing = true;
+
+  const btn = document.getElementById('analyze-btn');
+  btn.disabled = true; btn.textContent = 'PROCESSING';
+
+  resetPanels();
+  document.getElementById('code').textContent = Math.floor(Math.random() * 900 + 100);
+  document.getElementById('extension').textContent = Math.floor(Math.random() * 9000 + 1000);
+  const exMode = document.getElementById('ex-mode');
+  exMode.textContent = 'ON'; exMode.classList.add('on');
+
+  document.getElementById('log-body').innerHTML = `
+    <div class="log-col melchior" id="log-melchior"><strong>MELCHIOR-01 / 理性分析</strong></div>
+    <div class="log-col balthasar" id="log-balthasar"><strong>BALTHASAR-02 / 道德评估</strong></div>
+    <div class="log-col caspar" id="log-caspar"><strong>CASPAR-03 / 直觉判别</strong></div>
+  `;
+
+  await sleep(400);
+
+  let result;
+  try {
+    result = await fetchAIAnalysis(question);
+  } catch (err) {
+    document.getElementById('log-melchior').textContent = 'ERROR: ' + err.message;
+    btn.disabled = false; btn.textContent = 'EXECUTE';
+    exMode.textContent = 'OFF'; exMode.classList.remove('on');
+    isAnalyzing = false;
+    return;
+  }
+
+  for (let i = 0; i < systemKeys.length; i++) {
+    const sysKey = systemKeys[i];
+    const panel = document.getElementById('panel-' + sysKey);
+    panel.classList.add('analyzing');
+
+    await sleep(900 + Math.random() * 700);
+
+    const item = result[sysKey] || { analysis: '分析数据缺失。', vote: 'abstain' };
+    const vote = item.vote || 'abstain';
+
+    panel.classList.remove('analyzing');
+    panel.classList.add('vote-reveal');
+
+    const voteEl = document.getElementById('vote-jp-' + sysKey);
+    voteEl.textContent = voteJpMap[vote] || '保留';
+    voteEl.style.animation = 'none'; voteEl.offsetHeight;
+    voteEl.style.animation = 'voteStamp 0.5s ease';
+
+    const logCol = document.getElementById('log-' + sysKey);
+    await typewriter(logCol, item.analysis, 10);
+    await sleep(200);
+  }
+
+  await sleep(500);
+  showDecision(result.votes || {});
+
+  if (result.mode === 'mock_fallback') {
+    const statusEl = document.getElementById('api-status');
+    statusEl.textContent = 'FALLBACK';
+    statusEl.classList.remove('on');
+    const logBody = document.getElementById('log-body');
+    const warn = document.createElement('div');
+    warn.className = 'log-warn';
+    warn.textContent = '⚠ ' + (result.fallback_reason || 'AI API 不可用，结果为模拟数据');
+    logBody.appendChild(warn);
+  }
+
+  exMode.textContent = 'OFF'; exMode.classList.remove('on');
+  btn.disabled = false; btn.textContent = 'EXECUTE';
+  isAnalyzing = false;
+}
+
+// Boot Sequence
+const bootMessages = [
+  'MAGI SYSTEM INITIALIZING...',
+  'KERNEL: OK',
+  'MELCHIOR-01: ONLINE',
+  'BALTHASAR-02: ONLINE',
+  'CASPAR-03: ONLINE',
+  'PERSONALITY LINK: ESTABLISHED',
+  'VOTE PROTOCOL: ACTIVE',
+  'SYSTEM READY'
+];
+
+async function bootSequence() {
+  const log = document.getElementById('boot-log');
+  for (let i = 0; i < bootMessages.length; i++) {
+    const line = document.createElement('div');
+    line.className = 'boot-log-line';
+    line.textContent = bootMessages[i];
+    log.appendChild(line);
+    await sleep(250 + Math.random() * 200);
+  }
+  await sleep(600);
+  document.getElementById('boot-screen').classList.add('hide');
+  await sleep(1000);
+  document.getElementById('boot-screen').style.display = 'none';
+}
+
+async function checkApiStatus() {
+  try {
+    const res = await fetch('/api/config');
+    const cfg = await res.json();
+    const statusEl = document.getElementById('api-status');
+    if (cfg.mode === 'ai') {
+      statusEl.textContent = 'ONLINE / ' + cfg.model;
+      statusEl.classList.add('on');
+    } else {
+      statusEl.textContent = 'MOCK MODE';
+      statusEl.classList.remove('on');
+    }
+  } catch (e) {
+    document.getElementById('api-status').textContent = 'OFFLINE';
+  }
+}
+
+// Enter Key
+document.getElementById('question-input').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') { e.preventDefault(); runAnalysis(); }
+});
+
+window.addEventListener('load', () => {
+  bootSequence();
+  checkApiStatus();
+});
+</script>
+
+</body>
+</html>

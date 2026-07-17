@@ -1,0 +1,85 @@
+<view class="container {{booted ? 'booted' : ''}}">
+  <!-- CRT overlay -->
+  <view class="scanlines"></view>
+  <view class="crt-flicker"></view>
+
+  <!-- Top labels -->
+  <view class="top-bar">
+    <view class="top-label deco">提訴</view>
+    <view class="top-label deco">決議</view>
+  </view>
+
+  <!-- Left / top metadata panel -->
+  <view class="left-panel">
+    <view class="meta-list">
+      <view class="meta-row"><text class="meta-label">CODE:</text><text class="meta-value meta-code">{{code}}</text></view>
+      <view class="meta-row"><text class="meta-label">FILE:</text><text class="meta-value">MAGI_SYS</text></view>
+      <view class="meta-row"><text class="meta-label">EXTENTION:</text><text class="meta-value">{{extension}}</text></view>
+      <view class="meta-row"><text class="meta-label">EX_MODE:</text><text class="meta-value {{exMode === 'ON' ? 'on' : ''}}">{{exMode}}</text></view>
+      <view class="meta-row"><text class="meta-label">PRIORITY:</text><text class="meta-value">AAA</text></view>
+      <view class="meta-row"><text class="meta-label">AI API:</text><text class="meta-value {{apiOnline ? 'on' : ''}}">{{apiStatus}}</text></view>
+    </view>
+
+    <view class="input-area">
+      <view class="input-label">CASE DATA INPUT</view>
+      <input class="question-input" type="text" placeholder="输入需要决策的问题" value="{{question}}" bindinput="onInput" confirm-type="done" bindconfirm="execute" />
+      <view class="button-row">
+        <button class="btn execute" disabled="{{isAnalyzing}}" bindtap="execute">{{isAnalyzing ? 'PROCESSING' : 'EXECUTE'}}</button>
+        <button class="btn reset" bindtap="reset">RESET</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- Center MAGI system -->
+  <view class="center-area">
+    <view class="ring"></view>
+    <view class="magi-title">MAGI</view>
+
+    <!-- Connection lines -->
+    <view class="line line1"></view>
+    <view class="line line2"></view>
+    <view class="line line3"></view>
+
+    <view class="panel balthasar {{activeSystem === 'balthasar' ? 'analyzing' : ''}}">
+      <view class="panel-inner">
+        <text class="panel-jp">{{votes.balthasar}}</text>
+        <text class="panel-en">BALTHASAR</text>
+      </view>
+    </view>
+
+    <view class="panel melchior {{activeSystem === 'melchior' ? 'analyzing' : ''}}">
+      <view class="panel-inner">
+        <text class="panel-jp">{{votes.melchior}}</text>
+        <text class="panel-en">MELCHIOR</text>
+      </view>
+    </view>
+
+    <view class="panel caspar {{activeSystem === 'caspar' ? 'analyzing' : ''}}">
+      <view class="panel-inner">
+        <text class="panel-jp">{{votes.caspar}}</text>
+        <text class="panel-en">CASPAR</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- Right decision box -->
+  <view class="right-panel">
+    <view class="right-label">決議</view>
+    <view class="decision-box {{decisionClass}}">
+      <text class="decision-jp">{{decision}}</text>
+    </view>
+  </view>
+
+  <!-- Analysis log -->
+  <view class="analysis-log">
+    <view class="log-header">[ ANALYSIS LOG ]</view>
+    <view class="log-body" wx:if="{{logs.length > 0}}">
+      <view wx:for="{{logs}}" wx:key="key" class="log-col {{item.color}}">
+        <text class="log-title">{{item.title}}</text>
+        <text class="log-text">{{item.text}}</text>
+        <text class="cursor" wx:if="{{activeSystem === item.key}}">▊</text>
+      </view>
+    </view>
+    <view class="log-empty" wx:else>等待决策输入... / WAITING FOR INPUT</view>
+  </view>
+</view>
