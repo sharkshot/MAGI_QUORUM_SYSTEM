@@ -30,10 +30,10 @@ MAGI_QUORUM_SYSTEM/
 │   ├── package.json
 │   └── android/                ← Android 原生工程
 ├── dist/                       ← 构建产物
-│   ├── MAGI决策系统-portable/   ← Windows 便携版（v4）
-│   ├── MAGI决策系统-v1.0-win64.zip
-│   ├── MAGI决策系统-v2.0-android.apk  ← 安卓 v2（MOCK v4）
-│   └── MAGI决策系统-v1.0-android.apk  ← 安卓 v1（旧版）
+│   ├── MAGI决策系统-portable/   ← Windows 便携版（v4，含 API 修复）
+│   ├── MAGI决策系统-v2.0-win64.zip   ← 桌面端（含 120s 超时/重试/智能URL 修复）
+│   ├── MAGI决策系统-v2.0-android.apk ← 安卓端（含全部 API 修复）
+│   └── MAGI决策系统-v1.0-android.apk ← 安卓 v1（旧版，已弃用）
 └── README.md
 ```
 
