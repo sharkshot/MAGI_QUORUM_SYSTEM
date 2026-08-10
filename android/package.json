@@ -1,0 +1,18 @@
+{
+  "name": "magi-android",
+  "version": "2.0.0",
+  "description": "MAGI 三系统 AI 决策系统 - 安卓端 (Capacitor)",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@capacitor/android": "^8.4.2",
+    "@capacitor/cli": "^8.4.2",
+    "@capacitor/core": "^8.4.2",
+    "@capacitor/preferences": "^8.0.1"
+  }
+}

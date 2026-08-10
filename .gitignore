@@ -1,0 +1,22 @@
+# Dependencies
+web/node_modules/
+desktop/node_modules/
+android/node_modules/
+
+# Android build
+android/android/app/build/
+android/android/.gradle/
+android/android/local.properties
+
+# Runtime config
+web/magi-config.json
+desktop/magi-config.json
+*.env
+
+# Build outputs
+dist/
+!dist/.gitkeep
+
+# OS files
+.DS_Store
+Thumbs.db

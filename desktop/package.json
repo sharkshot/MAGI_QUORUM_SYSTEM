@@ -1,0 +1,38 @@
+{
+  "name": "magi-desktop",
+  "version": "3.0.0",
+  "description": "MAGI 三系统 AI 决策系统 - 桌面端 (Electron)",
+  "main": "main.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "electron": "electron .",
+    "electron:dev": "electron . --dev",
+    "build:win": "electron-builder --win --x64",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "build": {
+    "appId": "com.magi.quorum",
+    "productName": "MAGI决策系统",
+    "asar": false,
+    "directories": { "output": "../dist" },
+    "files": [
+      "main.js", "server.js", "index.html", "mock-engine.js",
+      "package.json", ".env.example", "node_modules/**/*"
+    ],
+    "win": {
+      "target": [{ "target": "portable", "arch": ["x64"] }],
+      "artifactName": "MAGI决策系统-${version}.${ext}"
+    }
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "engines": { "node": ">=18.0.0" }
+}

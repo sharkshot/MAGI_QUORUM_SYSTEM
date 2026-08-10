@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#000000">
+<title>MAGI SYSTEM</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@700;900&family=Share+Tech+Mono&family=Noto+Sans+SC:wght@300;400;700&display=swap');
+
+:root {
+  --bg: #000;
+  --gold: #ffae00;
+  --gold-dim: #b87a00;
+  --gold-bright: #ffd166;
+  --cyan: #4fffd4;
+  --cyan-dark: #2a9dff;
+  --red: #e31b23;
+  --red-dark: #8b0000;
+  --text-on-color: #000;
+  --ring: rgba(255, 174, 0, 0.35);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  width: 100%; min-height: 100vh;
+  background: var(--bg);
+  color: var(--gold);
+  font-family: 'Share Tech Mono', 'Noto Sans SC', monospace;
+  overflow-x: hidden;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.magi-app {
+  position: relative;
+  width: 100%; min-height: 100vh;
+  padding: calc(16px + var(--safe-top)) 16px calc(16px + var(--safe-bottom));
+  display: flex; flex-direction: column;
+}
+
+/* CRT effects */
+.scanlines {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: repeating-linear-gradient(
+    0deg, transparent 0px, transparent 2px, rgba(255, 174, 0, 0.025) 2px, transparent 3px
+  );
+  pointer-events: none; z-index: 100;
+  animation: scanlineMove 0.2s linear infinite;
+}
+
+@keyframes scanlineMove {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 4px; }
+}
+
+.crt-flicker {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.08) 100%);
+  pointer-events: none; z-index: 99;
+  opacity: 0.06;
+  animation: flicker 0.15s infinite;
+}
+
+@keyframes flicker {
+  0%, 100% { opacity: 0.05; }
+  50% { opacity: 0.09; }
+}
+
+/* Top labels */
+.top-bar {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 14px;
+  position: relative; z-index: 10;
+}
+
+.top-label {
+  font-family: 'Noto Serif JP', serif;
+  font-size: clamp(28px, 7vw, 52px);
+  font-weight: 900;
+  color: var(--gold);
+  letter-spacing: clamp(3px, 1.2vw, 8px);
+  text-shadow: 0 0 20px rgba(255, 174, 0, 0.4);
+  line-height: 1;
+}
+
+.top-label.deco::before,
+.top-label.deco::after {
+  content: ''; display: block; height: 3px; background: var(--gold);
+  box-shadow: 0 0 8px rgba(255, 174, 0, 0.5);
+  margin: 4px 0;
+}
+
+#settings-btn {
+  background: transparent; border: 1px solid var(--gold-dim);
+  color: var(--gold); font-size: 18px; width: 36px; height: 36px;
+  cursor: pointer; border-radius: 4px; transition: all 0.2s;
+  display: flex; align-items: center; justify-content: center;
+}
+#settings-btn:active { border-color: var(--gold); box-shadow: 0 0 10px rgba(255,174,0,0.4); }
+
+/* Main area */
+.magi-main {
+  flex: 1;
+  display: flex; flex-direction: column;
+  gap: 16px;
+  position: relative; z-index: 10;
+}
+
+/* Center area */
+.center-wrap {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  order: 1;
+}
+
+.center-area {
+  position: relative;
+  width: min(340px, 85vw); height: min(340px, 85vw);
+  margin: 0 auto;
+}
+
+.magi-title {
+  position: absolute; left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: clamp(34px, 9vw, 46px); font-weight: 900;
+  color: var(--gold); letter-spacing: 8px;
+  text-shadow: 0 0 30px rgba(255, 174, 0, 0.5);
+  animation: titleFlicker 4s infinite;
+  z-index: 2;
+}
+
+@keyframes titleFlicker {
+  0%, 100% { opacity: 1; }
+  5% { opacity: 0.7; }
+  10% { opacity: 1; }
+  15% { opacity: 0.85; }
+  20% { opacity: 1; }
+  92% { opacity: 1; }
+  94% { opacity: 0.6; }
+  96% { opacity: 1; }
+}
+
+.ring {
+  position: absolute; left: 50%; top: 50%;
+  width: 76%; height: 76%;
+  transform: translate(-50%, -50%);
+  border: 2px solid var(--ring);
+  border-radius: 50%;
+  z-index: 0;
+  box-shadow: 0 0 20px rgba(255, 174, 0, 0.1);
+}
+
+.triangle-lines {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 0;
+}
+.triangle-lines .line {
+  stroke: var(--gold); stroke-width: 1.5; opacity: 0.45;
+  filter: drop-shadow(0 0 3px rgba(255, 174, 0, 0.3));
+}
+
+/* Panels */
+.panel {
+  position: absolute;
+  border: 3px solid var(--gold);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 3;
+  box-shadow: 0 0 20px rgba(255, 174, 0, 0.15);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.panel.balthasar {
+  width: 30%; height: 36%;
+  left: 50%; top: 0;
+  transform: translateX(-50%);
+  background: var(--cyan);
+}
+.panel.melchior {
+  width: 30%; height: 36%;
+  right: 6%; bottom: 6%;
+  background: var(--cyan);
+}
+.panel.caspar {
+  width: 30%; height: 36%;
+  left: 6%; bottom: 6%;
+  background: var(--red);
+}
+
+.panel-inner {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center;
+}
+
+.panel-jp {
+  font-family: 'Noto Serif JP', serif;
+  font-size: clamp(22px, 7vw, 36px); font-weight: 900;
+  color: var(--text-on-color);
+  margin-bottom: 4px;
+  letter-spacing: 2px;
+}
+.panel-en {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px; color: var(--text-on-color);
+  letter-spacing: 1px; font-weight: 700;
+}
+
+.panel.analyzing { animation: panelPulse 0.8s ease-in-out infinite; }
+@keyframes panelPulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(255, 174, 0, 0.15); }
+  50% { box-shadow: 0 0 35px rgba(255, 174, 0, 0.7); }
+}
+.panel.vote-reveal .panel-jp { animation: voteStamp 0.5s ease; }
+@keyframes voteStamp {
+  0% { transform: scale(1.5); opacity: 0; }
+  60% { transform: scale(0.95); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Decision area */
+.decision-wrap {
+  order: 2;
+  display: flex; flex-direction: column; align-items: center;
+}
+.decision-label {
+  font-family: 'Noto Serif JP', serif;
+  font-size: clamp(24px, 6vw, 34px); font-weight: 900;
+  color: var(--gold); margin-bottom: 12px;
+  letter-spacing: 4px;
+  text-shadow: 0 0 15px rgba(255, 174, 0, 0.3);
+}
+
+.decision-box {
+  width: 100px; height: 100px;
+  border: 3px solid var(--gold);
+  display: flex; align-items: center; justify-content: center;
+  background: #111;
+  transition: all 0.5s;
+  box-shadow: 0 0 15px rgba(255, 174, 0, 0.1);
+}
+.decision-box.approve { background: var(--cyan); box-shadow: 0 0 25px rgba(79, 255, 212, 0.4); }
+.decision-box.deny { background: var(--red); box-shadow: 0 0 25px rgba(227, 27, 35, 0.4); }
+.decision-box.abstain { background: var(--gold); box-shadow: 0 0 25px rgba(255, 174, 0, 0.4); }
+
+.decision-jp {
+  font-family: 'Noto Serif JP', serif;
+  font-size: 36px; font-weight: 900;
+  color: var(--text-on-color);
+  letter-spacing: 2px;
+}
+.decision-box.reveal { animation: decisionFlash 0.7s ease; }
+@keyframes decisionFlash {
+  0% { transform: scale(0.7); opacity: 0; }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Input area */
+.input-area {
+  order: 3;
+  border-top: 1px solid var(--gold-dim);
+  padding-top: 14px;
+}
+
+.input-label {
+  font-size: 10px; color: var(--gold-dim);
+  letter-spacing: 3px; margin-bottom: 8px;
+}
+
+#question-input {
+  width: 100%; background: #0a0a0a;
+  border: 1px solid var(--gold-dim); color: var(--gold);
+  padding: 10px 12px; font-size: 14px;
+  margin-bottom: 10px; outline: none;
+  font-family: 'Noto Sans SC', 'Share Tech Mono', monospace;
+  -webkit-user-select: text; user-select: text;
+}
+#question-input:focus { border-color: var(--gold); box-shadow: 0 0 12px rgba(255, 174, 0, 0.25); }
+#question-input::placeholder { color: var(--gold-dim); opacity: 0.6; }
+
+.button-row { display: flex; gap: 8px; }
+#analyze-btn, #reset-btn {
+  flex: 1; background: transparent;
+  border: 1px solid var(--gold); color: var(--gold);
+  padding: 10px 0; font-size: 12px; letter-spacing: 2px;
+  cursor: pointer; transition: all 0.2s;
+  font-family: 'Share Tech Mono', monospace; font-weight: 700;
+}
+#analyze-btn:active:not(:disabled), #reset-btn:active {
+  background: var(--gold); color: var(--text-on-color);
+}
+#analyze-btn:disabled {
+  opacity: 0.4; cursor: not-allowed; border-color: var(--gold-dim); color: var(--gold-dim);
+}
+
+/* Status bar */
+.status-bar {
+  display: flex; justify-content: space-between;
+  font-size: 10px; color: var(--gold-dim);
+  margin-bottom: 10px; letter-spacing: 1px;
+}
+#api-status.on { color: var(--cyan); text-shadow: 0 0 8px var(--cyan); }
+
+/* Analysis log */
+.analysis-log {
+  margin-top: 16px;
+  background: rgba(0,0,0,0.95);
+  border-top: 2px solid var(--gold);
+  padding: 14px 0;
+  z-index: 50;
+}
+.log-header {
+  font-size: 11px; color: var(--gold-dim);
+  letter-spacing: 4px; margin-bottom: 10px;
+  font-family: 'Share Tech Mono', monospace;
+  padding: 0 4px;
+}
+.log-body {
+  display: flex; flex-direction: column;
+  gap: 10px;
+}
+.log-col {
+  border: 1px solid var(--gold-dim);
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.7;
+  min-height: 60px;
+  max-height: 140px;
+  overflow-y: auto;
+  background: rgba(10, 10, 10, 0.6);
+  font-family: 'Noto Sans SC', monospace;
+  -webkit-user-select: text; user-select: text;
+}
+.log-col strong {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px; letter-spacing: 1px;
+  display: block; margin-bottom: 6px;
+}
+.log-col.melchior { border-color: var(--cyan); color: var(--cyan); }
+.log-col.balthasar { border-color: var(--cyan); color: var(--cyan); }
+.log-col.caspar { border-color: var(--red); color: var(--red); }
+.log-empty {
+  color: var(--gold-dim); font-size: 11px; text-align: center; padding: 16px;
+}
+.log-warn {
+  color: var(--gold);
+  background: rgba(255, 174, 0, 0.1);
+  border: 1px solid var(--gold-dim);
+  padding: 8px 12px;
+  font-size: 11px;
+  font-family: 'Noto Sans SC', monospace;
+  text-align: center;
+}
+.typing-cursor::after {
+  content: '▊'; color: currentColor;
+  animation: cursorBlink 0.8s steps(2) infinite;
+}
+@keyframes cursorBlink { 50% { opacity: 0; } }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: #000; }
+::-webkit-scrollbar-thumb { background: var(--gold-dim); }
+::-webkit-scrollbar-thumb:hover { background: var(--gold); }
+
+/* Boot Screen */
+#boot-screen {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: var(--bg); z-index: 9999;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  transition: opacity 1s ease-out;
+}
+#boot-screen.hide { opacity: 0; pointer-events: none; }
+.boot-magi {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: clamp(44px, 12vw, 72px); font-weight: 900; color: var(--gold);
+  letter-spacing: 16px;
+  text-shadow: 0 0 50px rgba(255, 174, 0, 0.6);
+  animation: bootGlow 1.5s ease-in-out infinite alternate;
+}
+@keyframes bootGlow {
+  from { text-shadow: 0 0 30px rgba(255, 174, 0, 0.3); }
+  to { text-shadow: 0 0 70px rgba(255, 174, 0, 0.8), 0 0 100px rgba(255, 174, 0, 0.3); }
+}
+.boot-log {
+  margin-top: 32px; font-size: 12px; color: var(--gold);
+  font-family: 'Share Tech Mono', monospace;
+  letter-spacing: 2px; line-height: 2;
+  text-align: center;
+  min-height: 200px;
+}
+.boot-log-line { opacity: 0; animation: bootLine 0.1s forwards; }
+@keyframes bootLine { to { opacity: 1; } }
+
+/* Settings Modal */
+.settings-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.85); z-index: 500;
+  display: none; align-items: center; justify-content: center;
+}
+.settings-overlay.show { display: flex; }
+.settings-box {
+  background: #0a0a0a; border: 2px solid var(--gold);
+  padding: 24px; width: min(380px, 88vw);
+  box-shadow: 0 0 40px rgba(255,174,0,0.2);
+}
+.settings-title {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 16px; color: var(--gold); letter-spacing: 3px;
+  margin-bottom: 16px; border-bottom: 1px solid var(--gold-dim);
+  padding-bottom: 10px;
+}
+.settings-field { margin-bottom: 14px; }
+.settings-field label {
+  display: block; font-size: 11px; color: var(--gold-dim);
+  letter-spacing: 2px; margin-bottom: 5px;
+}
+.settings-field input {
+  width: 100%; background: #000; border: 1px solid var(--gold-dim);
+  color: var(--gold); padding: 8px 10px; font-size: 13px; outline: none;
+  font-family: 'Share Tech Mono', monospace;
+  -webkit-user-select: text; user-select: text;
+}
+.settings-field input:focus { border-color: var(--gold); }
+.settings-hint {
+  font-size: 10px; color: var(--gold-dim); margin-top: 4px; line-height: 1.5;
+}
+.settings-status {
+  font-size: 11px; margin: 10px 0; padding: 8px;
+  border: 1px solid var(--gold-dim); text-align: center;
+}
+.settings-status.mock { color: var(--gold-dim); }
+.settings-status.ai { color: var(--cyan); border-color: var(--cyan); }
+.settings-actions { display: flex; gap: 10px; margin-top: 16px; }
+.settings-actions button {
+  flex: 1; padding: 10px; font-size: 12px; letter-spacing: 2px;
+  cursor: pointer; border: 1px solid var(--gold); background: transparent;
+  color: var(--gold); font-family: 'Share Tech Mono', monospace; font-weight: 700;
+  transition: all 0.2s;
+}
+.settings-actions button:active { background: var(--gold); color: #000; }
+.settings-actions button.close-btn { border-color: var(--gold-dim); color: var(--gold-dim); }
+
+@media (min-width: 768px) {
+  .magi-main {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 20px;
+  }
+  .center-wrap { flex: 1; order: 2; }
+  .input-area { order: 1; flex: 0 0 280px; border-top: none; border-right: 1px solid var(--gold-dim); padding-top: 0; padding-right: 20px; }
+  .decision-wrap { order: 3; flex: 0 0 160px; }
+  .center-area { width: min(420px, 45vw); height: min(420px, 45vw); }
+  .panel-jp { font-size: clamp(28px, 7vw, 42px); }
+  .panel-en { font-size: 11px; }
+  .decision-box { width: 120px; height: 120px; }
+  .decision-jp { font-size: 42px; }
+  .log-body { flex-direction: row; }
+  .log-col { max-height: 180px; }
+}
+</style>
+</head>
+<body>
+
+<div id="boot-screen">
+  <div class="boot-magi">MAGI</div>
+  <div class="boot-log" id="boot-log"></div>
+</div>
+
+<div class="magi-app">
+  <div class="scanlines"></div>
+  <div class="crt-flicker"></div>
+
+  <div class="top-bar">
+    <div class="top-label deco">提訴</div>
+    <div class="top-label deco">決議</div>
+    <button id="settings-btn" onclick="openSettings()">⚙</button>
+  </div>
+
+  <div class="magi-main">
+    <div class="center-wrap">
+      <div class="center-area">
+        <div class="ring"></div>
+        <div class="magi-title">MAGI</div>
+        <svg class="triangle-lines" viewBox="0 0 340 340" xmlns="http://www.w3.org/2000/svg">
+          <line class="line" x1="170" y1="35" x2="295" y2="260"/>
+          <line class="line" x1="295" y1="260" x2="45" y2="260"/>
+          <line class="line" x1="45" y1="260" x2="170" y2="35"/>
+        </svg>
+
+        <div class="panel balthasar" id="panel-balthasar">
+          <div class="panel-inner">
+            <div class="panel-jp" id="vote-jp-balthasar">—</div>
+            <div class="panel-en">BALTHASAR</div>
+          </div>
+        </div>
+
+        <div class="panel melchior" id="panel-melchior">
+          <div class="panel-inner">
+            <div class="panel-jp" id="vote-jp-melchior">—</div>
+            <div class="panel-en">MELCHIOR</div>
+          </div>
+        </div>
+
+        <div class="panel caspar" id="panel-caspar">
+          <div class="panel-inner">
+            <div class="panel-jp" id="vote-jp-caspar">—</div>
+            <div class="panel-en">CASPAR</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="input-area">
+      <div class="status-bar">
+        <span>AI API:</span>
+        <span id="api-status">CHECKING...</span>
+      </div>
+      <div class="input-label">CASE DATA INPUT</div>
+      <input type="text" id="question-input" placeholder="输入需要决策的问题" autocomplete="off">
+      <div class="button-row">
+        <button id="analyze-btn" onclick="runAnalysis()">EXECUTE</button>
+        <button id="reset-btn" onclick="resetSystem()">RESET</button>
+      </div>
+    </div>
+
+    <div class="decision-wrap">
+      <div class="decision-label">決議</div>
+      <div class="decision-box" id="decision-box">
+        <div class="decision-jp" id="decision-jp">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="analysis-log">
+    <div class="log-header">[ ANALYSIS LOG ]</div>
+    <div class="log-body" id="log-body">
+      <div class="log-empty">等待决策输入... / WAITING FOR INPUT</div>
+    </div>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="settings-overlay" id="settings-overlay">
+  <div class="settings-box">
+    <div class="settings-title">⚙ API 設定 / SETTINGS</div>
+    <div class="settings-field">
+      <label>API BASE URL</label>
+      <input type="text" id="set-api-base" placeholder="https://api.deepseek.com/v1">
+      <div class="settings-hint">OpenAI 兼容格式。留空 = MOCK 模式</div>
+    </div>
+    <div class="settings-field">
+      <label>API KEY</label>
+      <input type="password" id="set-api-key" placeholder="sk-...">
+      <div class="settings-hint">显示 **** 表示已配置，输入新值覆盖</div>
+    </div>
+    <div class="settings-field">
+      <label>MODEL</label>
+      <input type="text" id="set-api-model" placeholder="deepseek-chat">
+    </div>
+    <div class="settings-status mock" id="set-status">当前模式: MOCK</div>
+    <div class="settings-actions">
+      <button onclick="saveSettings()">保存</button>
+      <button class="close-btn" onclick="closeSettings()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script src="mock-engine.js"></script>
+<script>
+// ============================================================
+//  MAGI AI Decision Engine - Mobile Standalone Version
+//  不依赖后端服务器，直接调用 AI API
+// ============================================================
+
+// 设置存储
+function getSettings() {
+  try {
+    const s = localStorage.getItem('magi-settings');
+    if (s) return JSON.parse(s);
+  } catch(e) {}
+  return { api_base: '', api_key: '', api_model: 'deepseek-chat' };
+}
+
+function setSettings(s) {
+  localStorage.setItem('magi-settings', JSON.stringify(s));
+}
+
+let settings = getSettings();
+
+function isMockMode() {
+  return !settings.api_base || !settings.api_key;
+}
+
+const systemKeys = ['melchior', 'balthasar', 'caspar'];
+const voteJpMap = { approve: '承認', deny: '否定', abstain: '保留' };
+
+let isAnalyzing = false;
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function typewriter(element, text, speed = 12) {
+  const cursor = document.createElement('span');
+  cursor.className = 'typing-cursor';
+  element.appendChild(cursor);
+  for (let i = 0; i < text.length; i++) {
+    cursor.textContent += text[i];
+    await sleep(speed);
+  }
+  cursor.classList.remove('typing-cursor');
+}
+
+function resetPanels() {
+  systemKeys.forEach(sys => {
+    const panel = document.getElementById('panel-' + sys);
+    panel.classList.remove('analyzing', 'vote-reveal');
+    document.getElementById('vote-jp-' + sys).textContent = '—';
+  });
+  const decisionBox = document.getElementById('decision-box');
+  decisionBox.className = 'decision-box';
+  document.getElementById('decision-jp').textContent = '—';
+}
+
+function resetSystem() {
+  resetPanels();
+  document.getElementById('question-input').value = '';
+  document.getElementById('log-body').innerHTML = '<div class="log-empty">等待决策输入... / WAITING FOR INPUT</div>';
+}
+
+function showDecision(votes) {
+  const counts = { approve: 0, deny: 0, abstain: 0 };
+  Object.values(votes).forEach(v => { if (counts[v] !== undefined) counts[v]++; });
+  let decision = 'abstain', jpText = '保留';
+  if (counts.approve >= 2) { decision = 'approve'; jpText = '承認'; }
+  else if (counts.deny >= 2) { decision = 'deny'; jpText = '否定'; }
+  document.getElementById('decision-box').className = 'decision-box ' + decision + ' reveal';
+  document.getElementById('decision-jp').textContent = jpText;
+}
+
+// MOCK Engine v4.0 — loaded from mock-engine.js
+const { pickMockResult } = MAGI_MOCK;
+
+const SYSTEM_PROMPT = `你正在扮演 MAGI 三系统决策计算机。用户会提出一个需要决策的问题，请你从三个独立人格系统的角度分别分析并投票。
+
+三个系统：
+1. MELCHIOR-01（理性分析系统）：从逻辑、风险、可行性、成本收益、长期后果等理性角度分析。
+2. BALTHASAR-02（道德评估系统）：从伦理、责任、社会影响和情感关怀角度分析。
+3. CASPAR-03（直觉判别系统）：从直觉、情感、内心驱动和时机感判断。
+
+每个系统独立给出：
+- analysis：一段中文分析文本（100 字以内，精炼有力）。
+- vote：投票结果，必须是以下三者之一：approve（承認/赞成）、deny（否定/反对）、abstain（保留/弃权）。
+
+最终请严格按照以下 JSON 格式返回，不要包含任何其他解释文字：
+{
+  "melchior": { "analysis": "...", "vote": "approve|deny|abstain" },
+  "balthasar": { "analysis": "...", "vote": "approve|deny|abstain" },
+  "caspar": { "analysis": "...", "vote": "approve|deny|abstain" }
+}`;
+
+function parseJsonResponse(text) {
+  let cleaned = text.trim();
+  if (cleaned.startsWith('```')) {
+    cleaned = cleaned.replace(/```[\w]*\n?/, '').replace(/\n?```$/, '').trim();
+  }
+  return JSON.parse(cleaned);
+}
+
+function computeFinal(votes) {
+  const counts = { approve: 0, deny: 0, abstain: 0 };
+  Object.values(votes).forEach(v => { if (counts[v] !== undefined) counts[v]++; });
+  if (counts.approve >= 2) return 'approve';
+  if (counts.deny >= 2) return 'deny';
+  return 'abstain';
+}
+
+function normalizeResult(raw) {
+  const result = { melchior: {}, balthasar: {}, caspar: {} };
+  for (const key of ['melchior', 'balthasar', 'caspar']) {
+    const item = raw[key] || {};
+    let vote = (item.vote || 'abstain').toLowerCase().trim();
+    if (!['approve', 'deny', 'abstain'].includes(vote)) vote = 'abstain';
+    result[key] = {
+      analysis: String(item.analysis || '分析数据缺失。').slice(0, 200),
+      vote
+    };
+  }
+  result.votes = {
+    melchior: result.melchior.vote,
+    balthasar: result.balthasar.vote,
+    caspar: result.caspar.vote
+  };
+  result.final_decision = computeFinal(result.votes);
+  result.mode = isMockMode() ? 'mock' : 'ai';
+  return result;
+}
+
+// 直接调用 AI API（使用 Capacitor HTTP 或 fetch）
+async function callAIApi(question) {
+  const base = settings.api_base.replace(/\/+$/, '');
+  const url = base + '/chat/completions';
+
+  const reqBody = {
+    model: settings.api_model,
+    messages: [
+      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'user', content: question }
+    ],
+    temperature: 0.7,
+    max_tokens: 800
+  };
+
+  const MAX_RETRIES = 3;
+  let lastErr = null;
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      // 尝试使用 Capacitor HTTP 插件（绕过 CORS）
+      if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+        const capHttp = window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorHttp;
+        if (capHttp) {
+          console.log(`[Android AI] attempt ${attempt}/${MAX_RETRIES}`);
+          const response = await capHttp.request({
+            url: url,
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + settings.api_key
+            },
+            data: reqBody,
+            connectTimeout: 30000,
+            readTimeout: 120000
+          });
+          if (response.status >= 200 && response.status < 300) {
+            const data = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
+            const content = data.choices?.[0]?.message?.content || '';
+            return parseJsonResponse(content);
+          }
+          if (response.status === 401 || response.status === 403) {
+            throw new Error('AUTH_FAIL:' + response.status);
+          }
+          lastErr = new Error('AI API error: ' + response.status);
+          console.warn(`[Android AI] attempt ${attempt} failed: ${response.status}`);
+        }
+      } else {
+        // Fallback: 使用 fetch（浏览器/CORS 可能被阻止）
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 120000);
+        console.log(`[Web AI] attempt ${attempt}/${MAX_RETRIES}`);
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + settings.api_key
+          },
+          body: JSON.stringify(reqBody),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        if (response.status === 401 || response.status === 403) {
+          throw new Error('AUTH_FAIL:' + response.status);
+        }
+        if (!response.ok) {
+          lastErr = new Error('AI API error: ' + response.status);
+          console.warn(`[Web AI] attempt ${attempt} failed: ${response.status}`);
+        } else {
+          const data = await response.json();
+          const content = data.choices?.[0]?.message?.content || '';
+          return parseJsonResponse(content);
+        }
+      }
+    } catch (e) {
+      lastErr = e;
+      if (e.message.startsWith('AUTH_FAIL')) throw e;
+      console.warn(`[AI] attempt ${attempt} error: ${e.message}`);
+    }
+    if (attempt < MAX_RETRIES) await sleep(1500);
+  }
+  throw lastErr || new Error('AI API 全部重试失败');
+}
+
+async function fetchAnalysis(question) {
+  if (isMockMode()) {
+    await sleep(1200);
+    return normalizeResult(pickMockResult(question));
+  }
+
+  try {
+    const raw = await callAIApi(question);
+    return normalizeResult(raw);
+  } catch (err) {
+    console.error('AI API failed:', err);
+    // 降级到 MOCK
+    const mockResult = normalizeResult(pickMockResult(question));
+    mockResult.mode = 'mock_fallback';
+    mockResult.fallback_reason = err.message && err.message.startsWith('AUTH_FAIL')
+      ? 'AI API 认证失败（401/403）：请检查 API Key 是否正确'
+      : (err.name === 'AbortError'
+      ? 'AI API 响应超时（120s），已降级到模拟模式'
+      : `AI API 调用失败（已重试3次）: ${err.message}，已降级到模拟模式`);
+    return mockResult;
+  }
+}
+
+async function runAnalysis() {
+  const question = document.getElementById('question-input').value.trim();
+  if (!question) return;
+  if (isAnalyzing) return;
+  isAnalyzing = true;
+
+  const btn = document.getElementById('analyze-btn');
+  btn.disabled = true; btn.textContent = 'PROCESSING';
+
+  resetPanels();
+
+  document.getElementById('log-body').innerHTML = `
+    <div class="log-col melchior" id="log-melchior"><strong>MELCHIOR-01 / 理性分析</strong></div>
+    <div class="log-col balthasar" id="log-balthasar"><strong>BALTHASAR-02 / 道德评估</strong></div>
+    <div class="log-col caspar" id="log-caspar"><strong>CASPAR-03 / 直觉判别</strong></div>
+  `;
+
+  await sleep(400);
+
+  let result;
+  try {
+    result = await fetchAnalysis(question);
+  } catch (err) {
+    document.getElementById('log-melchior').innerHTML = `<strong>MELCHIOR-01 / 理性分析</strong><br><span style="color:#e31b23">⚠ ${err.message}</span>`;
+    document.getElementById('log-balthasar').innerHTML = `<strong>BALTHASAR-02 / 道德评估</strong><br><span style="color:#b87a00">等待服务恢复...</span>`;
+    document.getElementById('log-caspar').innerHTML = `<strong>CASPAR-03 / 直觉判别</strong><br><span style="color:#b87a00">等待服务恢复...</span>`;
+    btn.disabled = false; btn.textContent = 'EXECUTE';
+    isAnalyzing = false;
+    return;
+  }
+
+  for (let i = 0; i < systemKeys.length; i++) {
+    const sysKey = systemKeys[i];
+    const panel = document.getElementById('panel-' + sysKey);
+    panel.classList.add('analyzing');
+
+    await sleep(900 + Math.random() * 700);
+
+    const item = result[sysKey] || { analysis: '分析数据缺失。', vote: 'abstain' };
+    const vote = item.vote || 'abstain';
+
+    panel.classList.remove('analyzing');
+    panel.classList.add('vote-reveal');
+
+    const voteEl = document.getElementById('vote-jp-' + sysKey);
+    voteEl.textContent = voteJpMap[vote] || '保留';
+    voteEl.style.animation = 'none'; voteEl.offsetHeight;
+    voteEl.style.animation = 'voteStamp 0.5s ease';
+
+    const logCol = document.getElementById('log-' + sysKey);
+    await typewriter(logCol, item.analysis, 10);
+    await sleep(200);
+  }
+
+  await sleep(500);
+  showDecision(result.votes || {});
+
+  if (result.mode === 'mock_fallback') {
+    const logBody = document.getElementById('log-body');
+    const warn = document.createElement('div');
+    warn.className = 'log-warn';
+    warn.textContent = '⚠ ' + (result.fallback_reason || 'AI API 不可用，结果为模拟数据');
+    logBody.appendChild(warn);
+  }
+
+  btn.disabled = false; btn.textContent = 'EXECUTE';
+  isAnalyzing = false;
+}
+
+// Boot Sequence
+const bootMessages = [
+  'MAGI SYSTEM INITIALIZING...',
+  'KERNEL: OK',
+  'MELCHIOR-01: ONLINE',
+  'BALTHASAR-02: ONLINE',
+  'CASPAR-03: ONLINE',
+  'MOCK ENGINE v4.0: LOADED',
+  'PERSONALITY LINK: ESTABLISHED',
+  'VOTE PROTOCOL: ACTIVE',
+  'SYSTEM READY'
+];
+
+async function bootSequence() {
+  const log = document.getElementById('boot-log');
+  for (let i = 0; i < bootMessages.length; i++) {
+    const line = document.createElement('div');
+    line.className = 'boot-log-line';
+    line.textContent = bootMessages[i];
+    log.appendChild(line);
+    await sleep(250 + Math.random() * 200);
+  }
+  await sleep(600);
+  document.getElementById('boot-screen').classList.add('hide');
+  await sleep(1000);
+  document.getElementById('boot-screen').style.display = 'none';
+}
+
+function checkApiStatus() {
+  const statusEl = document.getElementById('api-status');
+  if (isMockMode()) {
+    statusEl.textContent = 'MOCK MODE';
+    statusEl.classList.remove('on');
+  } else {
+    statusEl.textContent = 'ONLINE / ' + settings.api_model;
+    statusEl.classList.add('on');
+  }
+}
+
+// Settings
+function openSettings() {
+  document.getElementById('set-api-base').value = settings.api_base || '';
+  document.getElementById('set-api-key').value = settings.api_key ? settings.api_key.slice(0, 4) + '****' + settings.api_key.slice(-4) : '';
+  document.getElementById('set-api-model').value = settings.api_model || '';
+  const st = document.getElementById('set-status');
+  if (isMockMode()) {
+    st.textContent = '当前模式: MOCK';
+    st.className = 'settings-status mock';
+  } else {
+    st.textContent = '当前模式: AI / ' + settings.api_model;
+    st.className = 'settings-status ai';
+  }
+  document.getElementById('settings-overlay').classList.add('show');
+}
+
+function closeSettings() {
+  document.getElementById('settings-overlay').classList.remove('show');
+}
+
+function saveSettings() {
+  const baseVal = document.getElementById('set-api-base').value.trim();
+  const keyVal = document.getElementById('set-api-key').value.trim();
+  const modelVal = document.getElementById('set-api-model').value.trim() || 'deepseek-chat';
+
+  settings.api_base = baseVal;
+  if (keyVal && !keyVal.includes('****')) {
+    settings.api_key = keyVal;
+  }
+  settings.api_model = modelVal;
+  setSettings(settings);
+
+  const st = document.getElementById('set-status');
+  if (isMockMode()) {
+    st.textContent = '当前模式: MOCK';
+    st.className = 'settings-status mock';
+  } else {
+    st.textContent = '当前模式: AI / ' + settings.api_model;
+    st.className = 'settings-status ai';
+  }
+  checkApiStatus();
+  setTimeout(() => closeSettings(), 600);
+}
+
+// Enter Key
+document.getElementById('question-input').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') { e.preventDefault(); runAnalysis(); }
+});
+
+// Close settings on overlay click
+document.getElementById('settings-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeSettings();
+});
+
+window.addEventListener('load', () => {
+  bootSequence();
+  checkApiStatus();
+});
+</script>
+
+</body>
+</html>
